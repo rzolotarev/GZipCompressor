@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace GZipCompressor.Archiever
 {
-    public class ThreadStarter
+    public class ThreadManager : IThreadManager
     {
         public bool LazyStartWasFired { get; private set; }
         public bool LazyStartAvailable { get; private set; }
@@ -16,12 +16,12 @@ namespace GZipCompressor.Archiever
         private int startPoint => 4;
         private int lazyFileSize => 200 * 1024 * 1024;
 
-        public ThreadStarter()
+        public ThreadManager()
         {
 
         }
 
-        public ThreadStarter(long fileSize, int chunk, int threadsCount)
+        public ThreadManager(long fileSize, int chunk, int threadsCount)
         {
             LazyStartAvailable = (fileSize > lazyFileSize) && ((fileSize / threadsCount * chunk) > startPoint);
         }
@@ -30,12 +30,12 @@ namespace GZipCompressor.Archiever
         {
             if (elementsCount >= startPoint)
             {
-                StartThread(syncBlock);
+                TryToWakeUp(syncBlock);
                 LazyStartWasFired = true;
             }
         }
 
-        public void StartThread(SyncBlock syncBlock)
+        public void TryToWakeUp(SyncBlock syncBlock)
         {
             if (!syncBlock.IsWorking)
             {
@@ -44,10 +44,10 @@ namespace GZipCompressor.Archiever
             }
         }
 
-        public void StartThreads(SyncBlock[] syncBlocks)
+        public void WakeUp(SyncBlock[] syncBlocks)
         {
             foreach (var syncBlock in syncBlocks)
-                StartThread(syncBlock);
+                TryToWakeUp(syncBlock);
         }
     }
 }

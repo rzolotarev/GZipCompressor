@@ -38,7 +38,8 @@ namespace GZipCompressor
                 else
                     compressor = new Decompressor(args[1], args[2], inputFile.Length);
 
-                var processResult = compressor.Start();
+                var threadManager = new ThreadManager();
+                var processResult = compressor.Start(threadManager);
 
                 Console.CursorTop += 1;
                 if (processResult && !compressor.GetCancelStatus())                               

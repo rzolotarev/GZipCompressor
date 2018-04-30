@@ -44,7 +44,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Archiever\ThreadStarter.cs" />
+    <Compile Include="Archiever\IThreadManager.cs" />
+    <Compile Include="Archiever\ThreadManager.cs" />
     <Compile Include="ConfigurationManager\SettingsManager.cs" />
     <Compile Include="DictionaryManager\DictionaryManager.cs" />
     <Compile Include="Exceptions\Check.cs" />

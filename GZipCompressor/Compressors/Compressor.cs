@@ -23,13 +23,13 @@ namespace Compressors
         {                                                        
         }             
 
-        public override bool Start()
+        public override bool Start(IThreadManager threadManager)
         {
             ConsoleLogger.WriteDiagnosticInfo($"Compressing of {SourceFilePath} to {TargetFilePath} is started...");
             
             try
-            {    
-                new Thread(ReadSourceFile).Start();
+            {                
+                new Thread(() => ReadSourceFile(threadManager)).Start();
 
                 var compressThreads = new Thread[CoresCount];
                 for (int i = 0; i < CoresCount; i++)
@@ -51,7 +51,7 @@ namespace Compressors
             }
         }
 
-        public void ReadSourceFile()
+        public void ReadSourceFile(IThreadManager threadManager)
         {
             long currentPosition = 0;
             var readedBytesCount = 0;
@@ -64,8 +64,7 @@ namespace Compressors
                                                         FileShare.Read, BlockSizeToRead))
             {
                 long fileSize = sourceFileStream.Length;
-
-                var threadsRunner = new ThreadStarter();
+                
                 try
                 {
                     while (((readedBytesCount = sourceFileStream.Read(buffer, 0, buffer.Length)) > 0)
@@ -78,7 +77,7 @@ namespace Compressors
 
                         CompressedDataQueues[queueNumber].Enqueue(new BytesBlock(buffer, blockNumber++));
 
-                        threadsRunner.StartThread(Syncs[queueNumber]);
+                        threadManager.TryToWakeUp(Syncs[queueNumber]);
 
                         currentPosition += readedBytesCount;
                         queueNumber++;

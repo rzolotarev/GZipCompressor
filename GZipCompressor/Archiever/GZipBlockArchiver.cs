@@ -59,6 +59,6 @@ namespace GZipCompressor.Archiever
                 queue[i] = new T();
         }
 
-        public abstract bool Start();
+        public abstract bool Start(IThreadManager threadManager);
     }
 }

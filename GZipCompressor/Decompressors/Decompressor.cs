@@ -26,13 +26,13 @@ namespace Services.Decompressor
             
         }        
 
-        public override bool Start()
+        public override bool Start(IThreadManager threadManager)
         {
             ConsoleLogger.WriteDiagnosticInfo($"Decompressing of {SourceFilePath} to {TargetFilePath} is started...");
 
             try
             {
-                new Thread(ReadSourceFile).Start();
+                new Thread(() => ReadSourceFile(threadManager)).Start();
 
                 for (int i = 0; i < CoresCount; i++)
                 {
@@ -53,7 +53,7 @@ namespace Services.Decompressor
             }
         }
 
-        public void ReadSourceFile()
+        public void ReadSourceFile(IThreadManager threadManager)
         {
             using (var sourceFileStream = new FileStream(SourceFilePath, FileMode.Open))
             {
@@ -61,9 +61,7 @@ namespace Services.Decompressor
                 long currentPosition = 0;
                 var orderNumber = 0;
                 var queueNumber = 0;
-                var bufferForLength = new byte[sizeBlockLength];
-
-                var threadsRunner = new ThreadStarter();
+                var bufferForLength = new byte[sizeBlockLength];                
 
                 try
                 {
@@ -76,7 +74,7 @@ namespace Services.Decompressor
 
                         CompressedDataQueues[queueNumber].Enqueue(new BytesBlock(buffer, orderNumber++));
 
-                        threadsRunner.StartThread(Syncs[queueNumber]);
+                        threadManager.TryToWakeUp(Syncs[queueNumber]);
 
                         currentPosition += buffer.Length + sizeBlockLength;
                         queueNumber++;
