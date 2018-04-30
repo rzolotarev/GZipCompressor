@@ -113,7 +113,7 @@ namespace Compressors
             {
                 while (!ProcessIsCanceled)
                 {              
-                    if (ReadingIsCompleted && CompressedDataQueues[threadNumber].IsEmpty)
+                    if (ReadingIsCompleted && CompressedDataQueues[threadNumber].IsEmpty())
                     {                                           
                         Interlocked.Decrement(ref UnsyncThreads);                        
                         if (UnsyncThreads == 0) allCompressIsCompleted = true;
@@ -129,7 +129,7 @@ namespace Compressors
                     }
 
                     var buffer = BytesCompressUtil.CompressBytes(bytesBlock.Buffer);
-                    DictionaryToWrite.TryAdd(bytesBlock.OrderNumber, buffer);               
+                    DictionaryToWrite.Add(bytesBlock.OrderNumber, buffer);               
                 }
             }
             catch (OutOfMemoryException ex)
@@ -148,7 +148,7 @@ namespace Compressors
             {                
                 while (!ProcessIsCanceled)
                 {                    
-                    if (allCompressIsCompleted && DictionaryToWrite.IsEmpty)
+                    if (allCompressIsCompleted && DictionaryToWrite.IsEmpty())
                     {
                         SavingToFileIsCompleted = true;                        
                         break;

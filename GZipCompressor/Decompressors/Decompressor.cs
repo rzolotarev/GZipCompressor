@@ -112,7 +112,7 @@ namespace Services.Decompressor
             {
                 while (!ProcessIsCanceled)
                 {
-                    if (ReadingIsCompleted && CompressedDataQueues[threadNumber].IsEmpty)
+                    if (ReadingIsCompleted && CompressedDataQueues[threadNumber].IsEmpty())
                     {
                         Interlocked.Decrement(ref UnsyncThreads);
                         if (UnsyncThreads == 0) allDecompressIsCompleted = true;
@@ -129,7 +129,7 @@ namespace Services.Decompressor
 
                     var buffer = BytesCompressUtil.DecompressBytes(bytesBlock.Buffer, BlockSizeToRead);
 
-                    DictionaryToWrite.TryAdd(bytesBlock.OrderNumber, buffer);
+                    DictionaryToWrite.Add(bytesBlock.OrderNumber, buffer);
                 }
             }
             catch (OutOfMemoryException ex)
@@ -148,7 +148,7 @@ namespace Services.Decompressor
                 var orderNumber = 0;
                 while (!ProcessIsCanceled)
                 {                 
-                    if (allDecompressIsCompleted && DictionaryToWrite.IsEmpty)
+                    if (allDecompressIsCompleted && DictionaryToWrite.IsEmpty())
                     {
                         SavingToFileIsCompleted = true;                     
                         break;

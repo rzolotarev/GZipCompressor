@@ -46,6 +46,7 @@
   <ItemGroup>
     <Compile Include="Archiever\ThreadStarter.cs" />
     <Compile Include="ConfigurationManager\SettingsManager.cs" />
+    <Compile Include="DictionaryManager\DictionaryManager.cs" />
     <Compile Include="Exceptions\Check.cs" />
     <Compile Include="InputValidations\Dictionary.cs" />
     <Compile Include="Models\BytesBlock.cs" />
@@ -58,6 +59,7 @@
     <Compile Include="Outputs\ProgressBar.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="QueueManager\QueueManager.cs" />
     <Compile Include="Service\BytesCompressUtil.cs" />
   </ItemGroup>
   <ItemGroup>
