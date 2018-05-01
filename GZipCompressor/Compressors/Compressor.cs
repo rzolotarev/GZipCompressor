@@ -98,7 +98,7 @@ namespace Compressors
             }
             finally
             {
-                if (!ProcessIsCanceled && exception != null)
+                if (!ProcessIsCanceled && exception == null)
                 {
                     Console.CursorLeft = 30;
                     Console.Write("Please, wait for ending of saving the file to disk...");
@@ -118,7 +118,7 @@ namespace Compressors
 
             try
             {
-                while (!ProcessIsCanceled && exception != null)
+                while (!ProcessIsCanceled && exception == null)
                 {              
                     if (ReadingIsCompleted && CompressedDataQueues[threadNumber].IsEmpty())
                     {                                           
@@ -155,7 +155,7 @@ namespace Compressors
             {
                 using (var targetFileStream = File.Create(TargetFilePath))
                 {
-                    while (!ProcessIsCanceled && exception != null)
+                    while (!ProcessIsCanceled && exception == null)
                     {
                         if (allCompressIsCompleted && DictionaryToWrite.IsEmpty())
                         {

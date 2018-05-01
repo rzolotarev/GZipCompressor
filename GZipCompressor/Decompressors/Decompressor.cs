@@ -97,7 +97,7 @@ namespace Services.Decompressor
                 }
                 finally
                 {
-                    if (!ProcessIsCanceled && exception != null)
+                    if (!ProcessIsCanceled && exception == null)
                     {
                         Console.CursorLeft = 30;
                         Console.Write("Please, wait for ending of saving the file to disk...");
@@ -150,7 +150,7 @@ namespace Services.Decompressor
                 using (var targetFileStream = File.Create(TargetFilePath))
                 {
                     var orderNumber = 0;
-                    while (!ProcessIsCanceled && exception != null)
+                    while (!ProcessIsCanceled && exception == null)
                     {
                         if (allDecompressIsCompleted && DictionaryToWrite.IsEmpty())
                         {
