@@ -15,46 +15,39 @@ using System.Threading;
 namespace Compressors
 {
     public class Compressor : GZipBlockArchiver
-    {                       
-        private static bool allCompressIsCompleted { get; set; } = false;       
+    {
+        private static bool allCompressIsCompleted { get; set; } = false;
 
         public Compressor(string sourceFilePath, string targetFilePath, long fileSize)
                                      : base(sourceFilePath, targetFilePath, fileSize)
-        {                                                        
-        }             
+        {
+        }
 
         public override bool Start(IThreadManager threadManager)
         {
             ConsoleLogger.WriteDiagnosticInfo($"Compressing of {SourceFilePath} to {TargetFilePath} is started...");
-            
-            try
-            {                
-                new Thread(() => ReadSourceFile(threadManager)).Start();
 
-                var compressThreads = new Thread[CoresCount];
-                for (int i = 0; i < CoresCount; i++)
-                {
-                    var current = i;
-                    new Thread(() => Compress(current)).Start();                    
-                }
 
-                var threadToWrite = new Thread(WriteToTargetFile);
-                threadToWrite.Start();                
+            new Thread(() => ReadSourceFile(threadManager)).Start();
 
-                threadToWrite.Join();
-                if (exception != null)
-                {
-                    ConsoleLogger.WriteError(exception.Message);
-                    return false;
-                }
-
-                return true;
-            }
-            catch (Exception ex)
+            var compressThreads = new Thread[CoresCount];
+            for (int i = 0; i < CoresCount; i++)
             {
-                ConsoleLogger.WriteError(ex.Message);
+                var current = i;
+                new Thread(() => Compress(current)).Start();
+            }
+
+            var threadToWrite = new Thread(WriteToTargetFile);
+            threadToWrite.Start();
+
+            threadToWrite.Join();
+            if (exception != null)
+            {
+                ConsoleLogger.WriteError(exception.Message);
                 return false;
             }
+
+            return true;
         }
 
         public void ReadSourceFile(IThreadManager threadManager)

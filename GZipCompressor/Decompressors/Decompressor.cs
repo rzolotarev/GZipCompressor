@@ -30,33 +30,26 @@ namespace Services.Decompressor
         {
             ConsoleLogger.WriteDiagnosticInfo($"Decompressing of {SourceFilePath} to {TargetFilePath} is started...");
 
-            try
+
+            new Thread(() => ReadSourceFile(threadManager)).Start();
+
+            for (int i = 0; i < CoresCount; i++)
             {
-                new Thread(() => ReadSourceFile(threadManager)).Start();
-
-                for (int i = 0; i < CoresCount; i++)
-                {
-                    var currentThread = i;
-                    new Thread(() => Decompress(currentThread)).Start();
-                }
-
-                var threadToWrite = new Thread(WriteToTargetFile);
-                threadToWrite.Start();
-
-                threadToWrite.Join();
-                if (exception != null)
-                {
-                    ConsoleLogger.WriteError(exception.Message);
-                    return false;
-                }           
-
-                return true;
+                var currentThread = i;
+                new Thread(() => Decompress(currentThread)).Start();
             }
-            catch (Exception ex)
+
+            var threadToWrite = new Thread(WriteToTargetFile);
+            threadToWrite.Start();
+
+            threadToWrite.Join();
+            if (exception != null)
             {
-                ConsoleLogger.WriteError(ex.Message);
+                ConsoleLogger.WriteError(exception.Message);
                 return false;
             }
+
+            return true;
         }
 
         public void ReadSourceFile(IThreadManager threadManager)
