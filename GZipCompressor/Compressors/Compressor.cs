@@ -60,15 +60,16 @@ namespace Compressors
 
             byte[] buffer = new byte[BlockSizeToRead];
 
-            using (var sourceFileStream = new FileStream(SourceFilePath, FileMode.Open, FileAccess.Read,
-                                                        FileShare.Read, BlockSizeToRead))
+            try
             {
-                long fileSize = sourceFileStream.Length;
-                
-                try
+                using (var sourceFileStream = new FileStream(SourceFilePath, FileMode.Open, FileAccess.Read,
+                                                        FileShare.Read, BlockSizeToRead))
                 {
+                    long fileSize = sourceFileStream.Length;
+
+
                     while (((readedBytesCount = sourceFileStream.Read(buffer, 0, buffer.Length)) > 0)
-                        && !ProcessIsCanceled)
+                        && !ProcessIsCanceled && exception == null)
                     {
                         if (readedBytesCount < BlockSizeToRead)
                             Array.Resize(ref buffer, readedBytesCount);
@@ -84,22 +85,29 @@ namespace Compressors
                         ProgressBar.Print(currentPosition, fileSize, "Reading: Processed: ");
                     }
                 }
-                catch (OutOfMemoryException ex)
-                {
-                    ConsoleLogger.WriteError($"Please make the size of chunk smaller... Current chunk size - {BlockSizeToRead} bytes");
-                    throw ex;
-                }
             }
-
-            if (!ProcessIsCanceled)
+            catch (OutOfMemoryException ex)
             {
-                Console.CursorLeft = 30;
-                Console.Write("Please, wait for ending of saving the file to disk...");
-                ReadingIsCompleted = true;                
+                ConsoleLogger.WriteError($"Please make the size of chunk smaller... Current chunk size - {BlockSizeToRead} bytes");
+                exception = ex;
             }
+            catch (Exception ex)
+            {
+                ConsoleLogger.WriteError(ex.Message);
+                exception = ex;
+            }
+            finally
+            {
+                if (!ProcessIsCanceled && exception != null)
+                {
+                    Console.CursorLeft = 30;
+                    Console.Write("Please, wait for ending of saving the file to disk...");
+                    ReadingIsCompleted = true;
+                }
 
-            for (int i = 0; i < CoresCount; i++)
-                Syncs[i].Event.Set();
+                for (int i = 0; i < CoresCount; i++)
+                    Syncs[i].Event.Set();
+            }
         }
 
         public void Compress(int threadNumber)
@@ -110,7 +118,7 @@ namespace Compressors
 
             try
             {
-                while (!ProcessIsCanceled)
+                while (!ProcessIsCanceled && exception != null)
                 {              
                     if (ReadingIsCompleted && CompressedDataQueues[threadNumber].IsEmpty())
                     {                                           
@@ -135,7 +143,7 @@ namespace Compressors
             {
                 GC.Collect();
                 CompressedDataQueues[threadNumber].Enqueue(new BytesBlock(bytesBlock.Buffer, bytesBlock.OrderNumber));
-            }
+            }           
         }
         
         public void WriteToTargetFile()
@@ -143,31 +151,39 @@ namespace Compressors
             var orderNumber = 0;
 
             byte[] bytesBlock = null;
-            using (var targetFileStream = File.Create(TargetFilePath))
-            {                
-                while (!ProcessIsCanceled)
-                {                    
-                    if (allCompressIsCompleted && DictionaryToWrite.IsEmpty())
+            try
+            {
+                using (var targetFileStream = File.Create(TargetFilePath))
+                {
+                    while (!ProcessIsCanceled && exception != null)
                     {
-                        SavingToFileIsCompleted = true;                        
-                        break;
-                    }
-                    
-                    var isSuccess = DictionaryToWrite.TryRemove(orderNumber, out bytesBlock);
-                    if (!isSuccess)
-                    {                        
-                        Thread.Sleep(ThreadTimeout);                                                
-                        continue;
-                    }
+                        if (allCompressIsCompleted && DictionaryToWrite.IsEmpty())
+                        {
+                            SavingToFileIsCompleted = true;
+                            break;
+                        }
 
-                    var blockLengthInBytes = BitConverter.GetBytes(bytesBlock.Length);
-                    
-                    targetFileStream.Write(blockLengthInBytes, 0, blockLengthInBytes.Length);                    
-                    targetFileStream.Write(bytesBlock, 0, bytesBlock.Length);                    
+                        var isSuccess = DictionaryToWrite.TryRemove(orderNumber, out bytesBlock);
+                        if (!isSuccess)
+                        {
+                            Thread.Sleep(ThreadTimeout);
+                            continue;
+                        }
 
-                    orderNumber++;
-                }                               
+                        var blockLengthInBytes = BitConverter.GetBytes(bytesBlock.Length);
+
+                        targetFileStream.Write(blockLengthInBytes, 0, blockLengthInBytes.Length);
+                        targetFileStream.Write(bytesBlock, 0, bytesBlock.Length);
+
+                        orderNumber++;
+                    }
+                }
             }
+            catch (Exception ex)
+            {
+                ConsoleLogger.WriteError(ex.Message);
+                exception = ex;
+            }            
         }
     }
 }

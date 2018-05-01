@@ -15,16 +15,16 @@ namespace Services.Decompressor
 {
     public class Decompressor : GZipBlockArchiver
     {
-        private const int sizeBlockLength = 4;             
-        
+        private const int sizeBlockLength = 4;
+
         private bool allDecompressIsCompleted { get; set; } = false;
 
 
         public Decompressor(string sourceFilePath, string targetFilePath, long fileSize)
                                  : base(sourceFilePath, targetFilePath, fileSize)
-        {            
-            
-        }        
+        {
+
+        }
 
         public override bool Start(IThreadManager threadManager)
         {
@@ -44,6 +44,9 @@ namespace Services.Decompressor
                 threadToWrite.Start();
 
                 threadToWrite.Join();
+                if (exception != null)
+                    throw exception;
+
                 return true;
             }
             catch (Exception ex)
@@ -61,11 +64,12 @@ namespace Services.Decompressor
                 long currentPosition = 0;
                 var orderNumber = 0;
                 var queueNumber = 0;
-                var bufferForLength = new byte[sizeBlockLength];                
+                var bufferForLength = new byte[sizeBlockLength];
 
                 try
                 {
-                    while ((sourceFileStream.Read(bufferForLength, 0, bufferForLength.Length) > 0) && !ProcessIsCanceled)
+                    while ((sourceFileStream.Read(bufferForLength, 0, bufferForLength.Length) > 0)
+                        && !ProcessIsCanceled && exception == null)
                     {
                         byte[] buffer = new byte[BitConverter.ToInt32(bufferForLength, 0)];
                         sourceFileStream.Read(buffer, 0, buffer.Length);
@@ -84,18 +88,25 @@ namespace Services.Decompressor
                 catch (OutOfMemoryException ex)
                 {
                     ConsoleLogger.WriteError($"Please make the size of chunk smaller... Current chunk size - {BlockSizeToRead} bytes");
-                    throw ex;
-                }            
-
-                if (!ProcessIsCanceled)
-                {
-                    Console.CursorLeft = 30;
-                    Console.Write("Please, wait for ending of saving the file to disk...");
-                    ReadingIsCompleted = true;                    
+                    exception = ex;
                 }
+                catch (Exception ex)
+                {
+                    ConsoleLogger.WriteError(ex.Message);
+                    exception = ex;
+                }
+                finally
+                {
+                    if (!ProcessIsCanceled && exception != null)
+                    {
+                        Console.CursorLeft = 30;
+                        Console.Write("Please, wait for ending of saving the file to disk...");
+                        ReadingIsCompleted = true;
+                    }
 
-                for (int i = 0; i < CoresCount; i++)
-                    Syncs[i].Event.Set();
+                    for (int i = 0; i < CoresCount; i++)
+                        Syncs[i].Event.Set();
+                }
             }
         }
 
@@ -106,62 +117,63 @@ namespace Services.Decompressor
 
             BytesBlock bytesBlock = null;
 
-            try
+
+            while (!ProcessIsCanceled && exception == null)
             {
-                while (!ProcessIsCanceled)
+                if (ReadingIsCompleted && CompressedDataQueues[threadNumber].IsEmpty())
                 {
-                    if (ReadingIsCompleted && CompressedDataQueues[threadNumber].IsEmpty())
-                    {
-                        Interlocked.Decrement(ref UnsyncThreads);
-                        if (UnsyncThreads == 0) allDecompressIsCompleted = true;
-                        break;
-                    }
-
-                    var isSuccess = CompressedDataQueues[threadNumber].TryDequeue(out bytesBlock);
-                    if (!isSuccess)
-                    {
-                        Syncs[threadNumber].IsWorking = false;
-                        Syncs[threadNumber].Event.WaitOne();
-                        continue;
-                    }
-
-                    var buffer = BytesCompressUtil.DecompressBytes(bytesBlock.Buffer, BlockSizeToRead);
-
-                    DictionaryToWrite.Add(bytesBlock.OrderNumber, buffer);
+                    Interlocked.Decrement(ref UnsyncThreads);
+                    if (UnsyncThreads == 0) allDecompressIsCompleted = true;
+                    break;
                 }
+
+                var isSuccess = CompressedDataQueues[threadNumber].TryDequeue(out bytesBlock);
+                if (!isSuccess)
+                {
+                    Syncs[threadNumber].IsWorking = false;
+                    Syncs[threadNumber].Event.WaitOne();
+                    continue;
+                }
+
+                var buffer = BytesCompressUtil.DecompressBytes(bytesBlock.Buffer, BlockSizeToRead);
+
+                DictionaryToWrite.Add(bytesBlock.OrderNumber, buffer);
             }
-            catch (OutOfMemoryException ex)
-            {
-                GC.Collect();
-                CompressedDataQueues[threadNumber].Enqueue(new BytesBlock(bytesBlock.Buffer, bytesBlock.OrderNumber));
-            }
-        }        
+        }
+    
 
         public void WriteToTargetFile()
         {
             byte[] buffer = null;
-
-            using (var targetFileStream = File.Create(TargetFilePath))
+            try
             {
-                var orderNumber = 0;
-                while (!ProcessIsCanceled)
-                {                 
-                    if (allDecompressIsCompleted && DictionaryToWrite.IsEmpty())
+                using (var targetFileStream = File.Create(TargetFilePath))
+                {
+                    var orderNumber = 0;
+                    while (!ProcessIsCanceled && exception != null)
                     {
-                        SavingToFileIsCompleted = true;                     
-                        break;
-                    }
-                   
-                    var isSuccess = DictionaryToWrite.TryRemove(orderNumber, out buffer);
-                    if(!isSuccess)
-                    {                       
-                        Thread.Sleep(ThreadTimeout);
-                        continue;
-                    }                    
+                        if (allDecompressIsCompleted && DictionaryToWrite.IsEmpty())
+                        {
+                            SavingToFileIsCompleted = true;
+                            break;
+                        }
 
-                    targetFileStream.Write(buffer, 0, buffer.Length);
-                    orderNumber++;                                       
+                        var isSuccess = DictionaryToWrite.TryRemove(orderNumber, out buffer);
+                        if (!isSuccess)
+                        {
+                            Thread.Sleep(ThreadTimeout);
+                            continue;
+                        }
+
+                        targetFileStream.Write(buffer, 0, buffer.Length);
+                        orderNumber++;
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                ConsoleLogger.WriteError(ex.Message);
+                exception = ex;
             }
         }
     }

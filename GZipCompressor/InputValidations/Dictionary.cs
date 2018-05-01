@@ -21,5 +21,7 @@
         public static readonly string COMPRESS_TO_GZ = "Make sure the target file has gz extension at compress";
 
         public static readonly string DECOMPRESS_FROM_GZ = "Make sure the source file has gz extension at decompress";
+
+        public static readonly string NoCreatePermission = "Make sure the user has permission to create files";
     }
 }

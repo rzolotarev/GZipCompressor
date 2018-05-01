@@ -1,4 +1,5 @@
 ﻿using GZipCompressor.Exceptions;
+using GZipCompressor.Extensions;
 using GZipCompressor.InputValidations;
 using System.IO;
 
@@ -13,12 +14,13 @@ namespace InputValidations
             Check.That(args[0] == Dictionary.COMPRESS_COMMAND || args[0] == Dictionary.DECOMPRESS_COMMAND, $"{args[0]}: {Dictionary.CORRECT_COMMAND}");
             Check.That(File.Exists(args[1]), $"{args[1]}: {Dictionary.NOT_FOUND}");
             Check.That(args[1] != args[2], Dictionary.DIFFERENT_FILENAMES);
-            Check.That(!File.Exists(args[2]), $"{args[2]}: {Dictionary.TARGET_FILE_EXISTS}");
-
+            Check.That(!File.Exists(args[2]), $"{args[2]}: {Dictionary.TARGET_FILE_EXISTS}");            
             
             Check.That(CompressCommandExtensionsCorrect(args), Dictionary.COMPRESS_TO_GZ);
 
             Check.That(DecompressCommandExtensionsCorrect(args), Dictionary.DECOMPRESS_FROM_GZ);
+            
+            Check.That(new FileInfo(args[2]).CanCreate(), Dictionary.NoCreatePermission);
         }
 
         public static bool CompressCommandExtensionsCorrect(string[] args)

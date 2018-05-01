@@ -28,6 +28,8 @@ namespace GZipCompressor.Archiever
         protected static int UnsyncThreads = 0;
         protected int ThreadTimeout { get; set; }
 
+        protected Exception exception;
+
         public GZipBlockArchiver(string sourceFilePath, string targetFilePath, 
                                  long fileSize)
         {

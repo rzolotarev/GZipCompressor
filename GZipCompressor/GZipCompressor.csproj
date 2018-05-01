@@ -49,6 +49,7 @@
     <Compile Include="ConfigurationManager\SettingsManager.cs" />
     <Compile Include="DictionaryManager\DictionaryManager.cs" />
     <Compile Include="Exceptions\Check.cs" />
+    <Compile Include="Extensions\Extensions.cs" />
     <Compile Include="InputValidations\Dictionary.cs" />
     <Compile Include="Models\BytesBlock.cs" />
     <Compile Include="Compressors\Compressor.cs" />

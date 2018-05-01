@@ -1,5 +1,6 @@
 ﻿using Compressors;
 using GZipCompressor.Archiever;
+using GZipCompressor.Extensions;
 using GZipCompressor.InputValidations;
 using InputValidations;
 using Outputs;
@@ -30,7 +31,7 @@ namespace GZipCompressor
 
             try
             {
-                Validation.CheckInputParameters(args);
+                Validation.CheckInputParameters(args);               
                 var inputFile = new FileInfo(args[1]);
 
                 if (args[0] == Dictionary.COMPRESS_COMMAND)
