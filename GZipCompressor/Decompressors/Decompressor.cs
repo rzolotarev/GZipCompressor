@@ -45,7 +45,10 @@ namespace Services.Decompressor
 
                 threadToWrite.Join();
                 if (exception != null)
-                    throw exception;
+                {
+                    ConsoleLogger.WriteError(exception.Message);
+                    return false;
+                }           
 
                 return true;
             }
@@ -91,8 +94,7 @@ namespace Services.Decompressor
                     exception = ex;
                 }
                 catch (Exception ex)
-                {
-                    ConsoleLogger.WriteError(ex.Message);
+                {                    
                     exception = ex;
                 }
                 finally
@@ -171,8 +173,7 @@ namespace Services.Decompressor
                 }
             }
             catch (Exception ex)
-            {
-                ConsoleLogger.WriteError(ex.Message);
+            {                
                 exception = ex;
             }
         }

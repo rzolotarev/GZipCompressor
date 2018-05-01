@@ -41,7 +41,13 @@ namespace Compressors
                 var threadToWrite = new Thread(WriteToTargetFile);
                 threadToWrite.Start();                
 
-                threadToWrite.Join();       
+                threadToWrite.Join();
+                if (exception != null)
+                {
+                    ConsoleLogger.WriteError(exception.Message);
+                    return false;
+                }
+
                 return true;
             }
             catch (Exception ex)
@@ -93,7 +99,6 @@ namespace Compressors
             }
             catch (Exception ex)
             {
-                ConsoleLogger.WriteError(ex.Message);
                 exception = ex;
             }
             finally
@@ -180,8 +185,7 @@ namespace Compressors
                 }
             }
             catch (Exception ex)
-            {
-                ConsoleLogger.WriteError(ex.Message);
+            {                
                 exception = ex;
             }            
         }
