@@ -1,4 +1,5 @@
-﻿using GZipCompressor.Contracts;
+﻿
+using GZipCompressor.GZipArchiever;
 using GZipCompressor.Models;
 using System.Collections.Generic;
 
@@ -7,10 +8,10 @@ namespace GZipCompressor.QueueManager
     public class QueueManager<T> : Queue<T>
     {
         private readonly object _locker = new object();        
-        private readonly IThreadManager _threadManager;
+        private readonly ThreadManager _threadManager;
         private readonly SyncBlock _syncBlock;
         
-        public QueueManager(IThreadManager threadManager, SyncBlock syncBlock) : base()
+        public QueueManager(ThreadManager threadManager, SyncBlock syncBlock) : base()
         {            
             _threadManager = threadManager;
             _syncBlock = syncBlock;

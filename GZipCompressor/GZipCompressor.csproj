@@ -34,6 +34,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
+    <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -44,19 +45,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Contracts\IThreadManager.cs" />
+    <Compile Include="GZipArchiever\OperationType.cs" />
     <Compile Include="GZipArchiever\ThreadManager.cs" />
     <Compile Include="ConfigurationManager\SettingsManager.cs" />
-    <Compile Include="Contracts\IArchiever.cs" />
-    <Compile Include="Contracts\IFileReader.cs" />
-    <Compile Include="Contracts\IFileWriter.cs" />
     <Compile Include="DictionaryManager\DictionaryManager.cs" />
     <Compile Include="Exceptions\Check.cs" />
     <Compile Include="Extensions\Extensions.cs" />
     <Compile Include="InputValidations\Dictionary.cs" />
     <Compile Include="Models\BytesBlock.cs" />
-    <Compile Include="Compressors\Compressor.cs" />
-    <Compile Include="Decompressors\Decompressor.cs" />
     <Compile Include="GZipArchiever\GZipBlockArchiver.cs" />
     <Compile Include="InputValidations\Validation.cs" />
     <Compile Include="Models\SyncBlock.cs" />
@@ -66,10 +62,16 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="QueueManager\QueueManager.cs" />
-    <Compile Include="Service\Archiever.cs" />
+    <Compile Include="Service\Archievers\Archiever.cs" />
+    <Compile Include="Service\Archievers\Compressor.cs" />
+    <Compile Include="Service\Archievers\Decompressor.cs" />
     <Compile Include="Service\BytesCompressUtil.cs" />
-    <Compile Include="Service\FileReader.cs" />
-    <Compile Include="Service\FileWriter.cs" />
+    <Compile Include="Service\FileReaders\CompressedFileReader.cs" />
+    <Compile Include="Service\FileReaders\UncompressedFileReader.cs" />
+    <Compile Include="Service\FileReaders\FileReader.cs" />
+    <Compile Include="Service\FileWriters\CompressedFileWriter.cs" />
+    <Compile Include="Service\FileWriters\DecompressedFileWriter.cs" />
+    <Compile Include="Service\FileWriters\FileWriter.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

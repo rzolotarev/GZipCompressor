@@ -1,13 +1,12 @@
-﻿using Compressors;
-using GZipCompressor.Contracts;
-using GZipCompressor.Extensions;
-using GZipCompressor.GZipArchiever;
+﻿using GZipCompressor.GZipArchiever;
 using GZipCompressor.InputValidations;
 using GZipCompressor.ProcessManagement;
 using GZipCompressor.Service;
+using GZipCompressor.Service.Archievers;
+using GZipCompressor.Service.FileReaders;
+using GZipCompressor.Service.FileWriters;
 using InputValidations;
 using Outputs;
-using Services.Decompressor;
 using System;
 using System.IO;
 
@@ -37,17 +36,27 @@ namespace GZipCompressor
 
                 var threadManager = new ThreadManager();
 
-                GZipBlockArchiver compressor = null;
+                FileReader fileReader = null;
+                FileWriter fileWriter = null;
+                Archiever archiever = null;
+                OperationType operationType = OperationType.Compress;
+                GZipBlockArchiver compressor = new GZipBlockArchiver(args[1], args[2], threadManager, inputFile.Length);              
+                
                 if (args[0] == Dictionary.COMPRESS_COMMAND)
-                    compressor = new Compressor(args[1], args[2],  threadManager, inputFile.Length);
+                {                    
+                    fileReader = new UncompressedFileReader(args[1], compressor.CompressedDataManagers);
+                    fileWriter = new CompressedFileWriter(args[2], compressor.DictionaryWritingManager);
+                    archiever = new Compressor(compressor.CompressedDataManagers, compressor.DictionaryWritingManager);
+                }
                 else
-                    compressor = new Decompressor(args[1], args[2], threadManager , inputFile.Length);
+                {                    
+                    fileReader = new CompressedFileReader(args[1], compressor.CompressedDataManagers);
+                    fileWriter = new DecompressedFileWriter(args[2], compressor.DictionaryWritingManager);
+                    archiever = new Decompressor(compressor.CompressedDataManagers, compressor.DictionaryWritingManager);
+                    operationType = OperationType.Decompress;
+                }                            
 
-                var fileReader = new FileReader(args[1], compressor.CompressedDataManagers);
-                var archiever = new Archiever(compressor.CompressedDataManagers, compressor.DictionaryWritingManager);
-                var fileWriter = new FileWriter(args[2], compressor.DictionaryWritingManager);
-
-                var processResult = compressor.Start(fileReader, archiever, fileWriter);
+                var processResult = compressor.Start(fileReader, archiever, fileWriter, operationType);
 
                 Console.CursorTop += 1;
                 if (processResult && !StatusManager.ProcessIsCanceled)                               
