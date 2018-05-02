@@ -47,7 +47,7 @@ namespace GZipCompressor.Archiever
         public void WakeUp(SyncBlock[] syncBlocks)
         {
             foreach (var syncBlock in syncBlocks)
-                TryToWakeUp(syncBlock);
+                syncBlock.Event.Set();          
         }
     }
 }

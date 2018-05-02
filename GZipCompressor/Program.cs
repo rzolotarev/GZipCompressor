@@ -34,13 +34,13 @@ namespace GZipCompressor
                 Validation.CheckInputParameters(args);               
                 var inputFile = new FileInfo(args[1]);
 
-                if (args[0] == Dictionary.COMPRESS_COMMAND)
-                    compressor = new Compressor(args[1], args[2], inputFile.Length);
-                else
-                    compressor = new Decompressor(args[1], args[2], inputFile.Length);
-
                 var threadManager = new ThreadManager();
-                var processResult = compressor.Start(threadManager);
+                if (args[0] == Dictionary.COMPRESS_COMMAND)
+                    compressor = new Compressor(args[1], args[2],  threadManager, inputFile.Length);
+                else
+                    compressor = new Decompressor(args[1], args[2], threadManager , inputFile.Length);
+                
+                var processResult = compressor.Start();
 
                 Console.CursorTop += 1;
                 if (processResult && !compressor.GetCancelStatus())                               

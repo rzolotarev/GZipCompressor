@@ -20,18 +20,19 @@ namespace Services.Decompressor
         private bool allDecompressIsCompleted { get; set; } = false;
 
 
-        public Decompressor(string sourceFilePath, string targetFilePath, long fileSize)
-                                 : base(sourceFilePath, targetFilePath, fileSize)
+        public Decompressor(string sourceFilePath, string targetFilePath,
+                            IThreadManager threadManager, long fileSize)
+                                 : base(sourceFilePath, targetFilePath, threadManager, fileSize)
         {
 
         }
 
-        public override bool Start(IThreadManager threadManager)
+        public override bool Start()
         {
             ConsoleLogger.WriteDiagnosticInfo($"Decompressing of {SourceFilePath} to {TargetFilePath} is started...");
 
 
-            new Thread(() => ReadSourceFile(threadManager)).Start();
+            new Thread(ReadSourceFile).Start();
 
             for (int i = 0; i < CoresCount; i++)
             {
@@ -52,7 +53,7 @@ namespace Services.Decompressor
             return true;
         }
 
-        public void ReadSourceFile(IThreadManager threadManager)
+        public void ReadSourceFile()
         {
             using (var sourceFileStream = new FileStream(SourceFilePath, FileMode.Open))
             {
@@ -72,9 +73,7 @@ namespace Services.Decompressor
 
                         queueNumber = queueNumber % CoresCount;
 
-                        CompressedDataQueues[queueNumber].Enqueue(new BytesBlock(buffer, orderNumber++));
-
-                        threadManager.TryToWakeUp(Syncs[queueNumber]);
+                        CompressedDataManagers[queueNumber].Enqueue(new BytesBlock(buffer, orderNumber++));                        
 
                         currentPosition += buffer.Length + sizeBlockLength;
                         queueNumber++;
@@ -99,40 +98,38 @@ namespace Services.Decompressor
                         ReadingIsCompleted = true;
                     }
 
-                    for (int i = 0; i < CoresCount; i++)
-                        Syncs[i].Event.Set();
+                    ThreadManager.WakeUp(Syncs);                 
                 }
             }
         }
 
         private void Decompress(int threadNumber)
         {
-            Syncs[threadNumber].Event.WaitOne();
+            var threadCompressedDataManager = CompressedDataManagers[threadNumber];
+            threadCompressedDataManager.WaitOne();
+            
             Interlocked.Increment(ref UnsyncThreads);
-
             BytesBlock bytesBlock = null;
-
 
             while (!ProcessIsCanceled && exception == null)
             {
-                if (ReadingIsCompleted && CompressedDataQueues[threadNumber].IsEmpty())
+                if (ReadingIsCompleted && threadCompressedDataManager.IsEmpty())
                 {
                     Interlocked.Decrement(ref UnsyncThreads);
                     if (UnsyncThreads == 0) allDecompressIsCompleted = true;
                     break;
                 }
 
-                var isSuccess = CompressedDataQueues[threadNumber].TryDequeue(out bytesBlock);
+                var isSuccess = threadCompressedDataManager.TryDequeue(out bytesBlock);
                 if (!isSuccess)
                 {
-                    Syncs[threadNumber].IsWorking = false;
-                    Syncs[threadNumber].Event.WaitOne();
+                    threadCompressedDataManager.WaitOne();
                     continue;
                 }
 
                 var buffer = BytesCompressUtil.DecompressBytes(bytesBlock.Buffer, BlockSizeToRead);
 
-                DictionaryToWrite.Add(bytesBlock.OrderNumber, buffer);
+                DictionaryWritingManager.Add(bytesBlock.OrderNumber, buffer);
             }
         }
     
@@ -147,13 +144,13 @@ namespace Services.Decompressor
                     var orderNumber = 0;
                     while (!ProcessIsCanceled && exception == null)
                     {
-                        if (allDecompressIsCompleted && DictionaryToWrite.IsEmpty())
+                        if (allDecompressIsCompleted && DictionaryWritingManager.IsEmpty())
                         {
                             SavingToFileIsCompleted = true;
                             break;
                         }
 
-                        var isSuccess = DictionaryToWrite.TryRemove(orderNumber, out buffer);
+                        var isSuccess = DictionaryWritingManager.TryRemove(orderNumber, out buffer);
                         if (!isSuccess)
                         {
                             Thread.Sleep(ThreadTimeout);

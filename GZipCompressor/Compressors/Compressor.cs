@@ -5,30 +5,27 @@ using GZipCompressor.Outputs;
 using GZipCompressor.Service;
 using Outputs;
 using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.IO.Compression;
 using System.Threading;
 
 namespace Compressors
 {
     public class Compressor : GZipBlockArchiver
     {
-        private static bool allCompressIsCompleted { get; set; } = false;
+        private static bool allCompressIsCompleted { get; set; } = false;        
 
-        public Compressor(string sourceFilePath, string targetFilePath, long fileSize)
-                                     : base(sourceFilePath, targetFilePath, fileSize)
+        public Compressor(string sourceFilePath, string targetFilePath,
+                          IThreadManager threadManager, long fileSize)
+                                     : base(sourceFilePath, targetFilePath, threadManager, fileSize)
         {
         }
 
-        public override bool Start(IThreadManager threadManager)
+        public override bool Start()
         {
             ConsoleLogger.WriteDiagnosticInfo($"Compressing of {SourceFilePath} to {TargetFilePath} is started...");
 
 
-            new Thread(() => ReadSourceFile(threadManager)).Start();
+            new Thread(ReadSourceFile).Start();
 
             var compressThreads = new Thread[CoresCount];
             for (int i = 0; i < CoresCount; i++)
@@ -50,7 +47,7 @@ namespace Compressors
             return true;
         }
 
-        public void ReadSourceFile(IThreadManager threadManager)
+        public void ReadSourceFile()
         {
             long currentPosition = 0;
             var readedBytesCount = 0;
@@ -66,7 +63,6 @@ namespace Compressors
                 {
                     long fileSize = sourceFileStream.Length;
 
-
                     while (((readedBytesCount = sourceFileStream.Read(buffer, 0, buffer.Length)) > 0)
                         && !ProcessIsCanceled && exception == null)
                     {
@@ -75,9 +71,7 @@ namespace Compressors
 
                         queueNumber = queueNumber % CoresCount;
 
-                        CompressedDataQueues[queueNumber].Enqueue(new BytesBlock(buffer, blockNumber++));
-
-                        threadManager.TryToWakeUp(Syncs[queueNumber]);
+                        CompressedDataManagers[queueNumber].Enqueue(new BytesBlock(buffer, blockNumber++));                        
 
                         currentPosition += readedBytesCount;
                         queueNumber++;
@@ -103,14 +97,14 @@ namespace Compressors
                     ReadingIsCompleted = true;
                 }
 
-                for (int i = 0; i < CoresCount; i++)
-                    Syncs[i].Event.Set();
+                ThreadManager.WakeUp(Syncs);               
             }
         }
 
         public void Compress(int threadNumber)
-        {           
-            Syncs[threadNumber].Event.WaitOne();
+        {
+            var threadCompressedDataManager = CompressedDataManagers[threadNumber];
+            threadCompressedDataManager.WaitOne();
             Interlocked.Increment(ref UnsyncThreads);
             BytesBlock bytesBlock = null;
 
@@ -118,29 +112,28 @@ namespace Compressors
             {
                 while (!ProcessIsCanceled && exception == null)
                 {              
-                    if (ReadingIsCompleted && CompressedDataQueues[threadNumber].IsEmpty())
+                    if (ReadingIsCompleted && threadCompressedDataManager.IsEmpty())
                     {                                           
                         Interlocked.Decrement(ref UnsyncThreads);                        
                         if (UnsyncThreads == 0) allCompressIsCompleted = true;
                         break;
                     }
 
-                    var isSuccess = CompressedDataQueues[threadNumber].TryDequeue(out bytesBlock);
+                    var isSuccess = threadCompressedDataManager.TryDequeue(out bytesBlock);
                     if (!isSuccess)
-                    {    
-                        Syncs[threadNumber].IsWorking = false;
-                        Syncs[threadNumber].Event.WaitOne();
+                    {
+                        threadCompressedDataManager.WaitOne();
                         continue;
                     }
 
                     var buffer = BytesCompressUtil.CompressBytes(bytesBlock.Buffer);
-                    DictionaryToWrite.Add(bytesBlock.OrderNumber, buffer);               
+                    DictionaryWritingManager.Add(bytesBlock.OrderNumber, buffer);               
                 }
             }
             catch (OutOfMemoryException ex)
             {
                 GC.Collect();
-                CompressedDataQueues[threadNumber].Enqueue(new BytesBlock(bytesBlock.Buffer, bytesBlock.OrderNumber));
+                threadCompressedDataManager.Enqueue(new BytesBlock(bytesBlock.Buffer, bytesBlock.OrderNumber));
             }           
         }
         
@@ -155,13 +148,13 @@ namespace Compressors
                 {
                     while (!ProcessIsCanceled && exception == null)
                     {
-                        if (allCompressIsCompleted && DictionaryToWrite.IsEmpty())
+                        if (allCompressIsCompleted && DictionaryWritingManager.IsEmpty())
                         {
                             SavingToFileIsCompleted = true;
                             break;
                         }
 
-                        var isSuccess = DictionaryToWrite.TryRemove(orderNumber, out bytesBlock);
+                        var isSuccess = DictionaryWritingManager.TryRemove(orderNumber, out bytesBlock);
                         if (!isSuccess)
                         {
                             Thread.Sleep(ThreadTimeout);

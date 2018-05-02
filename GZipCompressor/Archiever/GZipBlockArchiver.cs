@@ -11,16 +11,17 @@ namespace GZipCompressor.Archiever
     {
         public static bool ProcessIsCanceled { get; set; } = false;
 
+        protected readonly IThreadManager ThreadManager;
+
         private static string chunkSize => "ChunkSize";
-        private static string threadTimeout => "ThreadTimeout";        
-        
+        private static string threadTimeout => "ThreadTimeout";
+        protected int CoresCount => Environment.ProcessorCount;
         protected readonly int BlockSizeToRead;
        
         protected string SourceFilePath { get; private set; }
-        protected string TargetFilePath { get; private set; }
-        protected int CoresCount { get; private set; }
-        protected QueueManager<BytesBlock>[] CompressedDataQueues { get; set; }
-        protected DictionaryManager<int, byte[]> DictionaryToWrite { get; set; }
+        protected string TargetFilePath { get; private set; }        
+        protected QueueManager<BytesBlock>[] CompressedDataManagers { get; set; }
+        protected DictionaryManager<int, byte[]> DictionaryWritingManager { get; set; }
         protected SyncBlock[] Syncs { get; set; }
         protected static bool ProcessIsCompleted { get; set; } = false;        
         protected static bool ReadingIsCompleted { get; set; } = false;
@@ -31,18 +32,16 @@ namespace GZipCompressor.Archiever
         protected Exception exception;
 
         public GZipBlockArchiver(string sourceFilePath, string targetFilePath, 
-                                 long fileSize)
+                                 IThreadManager threadManager, long fileSize)
         {
             SourceFilePath = sourceFilePath;
             TargetFilePath = targetFilePath;
-            CoresCount = Environment.ProcessorCount;
+            ThreadManager = threadManager;
             BlockSizeToRead = SettingsManager.GetConfigParameter<int>(chunkSize);
-            ThreadTimeout = SettingsManager.GetConfigParameter<int>(threadTimeout);
-            CompressedDataQueues = new QueueManager<BytesBlock>[CoresCount];
-            InitQueues(CompressedDataQueues);          
-            DictionaryToWrite = new DictionaryManager<int, byte[]>((int)(fileSize / BlockSizeToRead) + 1);
-            Syncs = new SyncBlock[CoresCount];
-            InitQueues(Syncs);
+            ThreadTimeout = SettingsManager.GetConfigParameter<int>(threadTimeout);                               
+            DictionaryWritingManager = new DictionaryManager<int, byte[]>((int)(fileSize / BlockSizeToRead) + 1);         
+            CompressedDataManagers = new QueueManager<BytesBlock>[CoresCount];
+            InitQueueManagers(CompressedDataManagers);
         }
 
         public void SetCancelStatus(bool status)
@@ -55,12 +54,21 @@ namespace GZipCompressor.Archiever
             return ProcessIsCanceled;
         }
 
-        protected void InitQueues<T>(T[] queue) where T : class, new()
+        private void InitDefaultQueues<T>(T[] queue) where T : class, new()
         {
             for (int i = 0; i < queue.Length; i++)
                 queue[i] = new T();
         }
 
-        public abstract bool Start(IThreadManager threadManager);
+        private void InitQueueManagers(QueueManager<BytesBlock>[] queuesManager)
+        {
+            Syncs = new SyncBlock[CoresCount];
+            InitDefaultQueues(Syncs);
+
+            for (int i = 0; i < queuesManager.Length; i++)
+                queuesManager[i] = new QueueManager<BytesBlock>(ThreadManager, Syncs[i]);
+        }
+
+        public abstract bool Start();
     }
 }
