@@ -21,15 +21,12 @@ namespace GZipCompressor.Archiever
         protected string SourceFilePath { get; private set; }
         protected string TargetFilePath { get; private set; }        
         protected QueueManager<BytesBlock>[] CompressedDataManagers { get; set; }
-        protected DictionaryManager<int, byte[]> DictionaryWritingManager { get; set; }
-        protected SyncBlock[] Syncs { get; set; }
-        protected static bool ProcessIsCompleted { get; set; } = false;        
-        protected static bool ReadingIsCompleted { get; set; } = false;
-        protected static bool SavingToFileIsCompleted { get; set; } = false;
+        protected DictionaryManager<int, byte[]> DictionaryWritingManager { get; set; }        
+        protected static bool ReadingIsCompleted { get; set; }
+        protected static bool SavingToFileIsCompleted { get; set; }
         protected static int UnsyncThreads = 0;
         protected int ThreadTimeout { get; set; }
-
-        protected Exception exception;
+        protected Exception exception { get; set; }
 
         public GZipBlockArchiver(string sourceFilePath, string targetFilePath, 
                                  IThreadManager threadManager, long fileSize)
@@ -62,11 +59,11 @@ namespace GZipCompressor.Archiever
 
         private void InitQueueManagers(QueueManager<BytesBlock>[] queuesManager)
         {
-            Syncs = new SyncBlock[CoresCount];
-            InitDefaultQueues(Syncs);
+            var syncs = new SyncBlock[CoresCount];
+            InitDefaultQueues(syncs);
 
             for (int i = 0; i < queuesManager.Length; i++)
-                queuesManager[i] = new QueueManager<BytesBlock>(_threadManager, Syncs[i]);
+                queuesManager[i] = new QueueManager<BytesBlock>(_threadManager, syncs[i]);
         }
 
         public abstract bool Start();

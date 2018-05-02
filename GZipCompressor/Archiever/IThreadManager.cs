@@ -9,8 +9,6 @@ namespace GZipCompressor.Archiever
 {
     public interface IThreadManager
     {
-        void TryToWakeUp(SyncBlock syncBlock);
-
-        void WakeUp(SyncBlock[] syncBlocks);
+        void TryToWakeUp(SyncBlock syncBlock);       
     }
 }

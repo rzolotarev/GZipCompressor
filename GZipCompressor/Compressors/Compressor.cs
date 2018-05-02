@@ -70,9 +70,7 @@ namespace Compressors
                             Array.Resize(ref buffer, readedBytesCount);
 
                         queueNumber = queueNumber % CoresCount;
-
-                        CompressedDataManagers[queueNumber].Enqueue(new BytesBlock(buffer, blockNumber++));                        
-
+                        CompressedDataManagers[queueNumber].Enqueue(new BytesBlock(buffer, blockNumber++));
                         currentPosition += readedBytesCount;
                         queueNumber++;
                         ProgressBar.Print(currentPosition, fileSize, "Reading: Processed: ");
@@ -98,7 +96,7 @@ namespace Compressors
                 }
 
                 foreach (var dataManager in CompressedDataManagers)
-                    dataManager.WakeUp();                            
+                    dataManager.WakeUp();
             }
         }
 
@@ -141,8 +139,8 @@ namespace Compressors
         public void WriteToTargetFile()
         {            
             var orderNumber = 0;
-
             byte[] bytesBlock = null;
+
             try
             {
                 using (var targetFileStream = File.Create(TargetFilePath))
@@ -163,7 +161,6 @@ namespace Compressors
                         }
 
                         var blockLengthInBytes = BitConverter.GetBytes(bytesBlock.Length);
-
                         targetFileStream.Write(blockLengthInBytes, 0, blockLengthInBytes.Length);
                         targetFileStream.Write(bytesBlock, 0, bytesBlock.Length);
 

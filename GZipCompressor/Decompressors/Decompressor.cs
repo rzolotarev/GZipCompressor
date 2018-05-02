@@ -15,7 +15,7 @@ namespace Services.Decompressor
 {
     public class Decompressor : GZipBlockArchiver
     {
-        private const int sizeBlockLength = 4;
+        private int sizeBlockLength => 4;
 
         private bool allDecompressIsCompleted { get; set; } = false;
 
@@ -71,9 +71,7 @@ namespace Services.Decompressor
                         sourceFileStream.Read(buffer, 0, buffer.Length);
 
                         queueNumber = queueNumber % CoresCount;
-
-                        CompressedDataManagers[queueNumber].Enqueue(new BytesBlock(buffer, orderNumber++));                        
-
+                        CompressedDataManagers[queueNumber].Enqueue(new BytesBlock(buffer, orderNumber++));
                         currentPosition += buffer.Length + sizeBlockLength;
                         queueNumber++;
                         ProgressBar.Print(currentPosition, fileSize, "Reading: Processed: ");
