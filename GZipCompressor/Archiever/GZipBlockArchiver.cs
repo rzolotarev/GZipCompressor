@@ -9,14 +9,14 @@ namespace GZipCompressor.Archiever
 {
     public abstract class GZipBlockArchiver
     {
-        public static bool ProcessIsCanceled { get; set; } = false;
-
-        protected readonly IThreadManager _threadManager;
-
         private static string chunkSize => "ChunkSize";
         private static string threadTimeout => "ThreadTimeout";
+
+        public bool ProcessIsCanceled { get; set; }
+        protected readonly IThreadManager _threadManager;
+        
         protected int CoresCount => Environment.ProcessorCount;
-        protected readonly int BlockSizeToRead;
+        protected int BlockSizeToRead { get; private set; }
        
         protected string SourceFilePath { get; private set; }
         protected string TargetFilePath { get; private set; }        
