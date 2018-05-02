@@ -10,6 +10,8 @@ namespace GZipCompressor.Service
 {
     public class BytesCompressUtil
     {
+        private static int BLOCK_SIZE_TO_DECOMPRESS = 1024 * 1024;
+
         public static byte[] CompressBytes(byte[] buffer)
         {
             using (var ms = new MemoryStream())
@@ -22,13 +24,13 @@ namespace GZipCompressor.Service
             }
         }
 
-        public static byte[] DecompressBytes(byte[] buffer,int blockSizeToRead)
+        public static byte[] DecompressBytes(byte[] buffer)
         {
             using (var outputStream = new MemoryStream())
             {
                 using (MemoryStream ms = new MemoryStream(buffer))
                 {
-                    var block = new byte[blockSizeToRead];
+                    var block = new byte[BLOCK_SIZE_TO_DECOMPRESS];
 
                     var readedBytesCount = 0;
                     using (GZipStream gz = new GZipStream(ms, CompressionMode.Decompress))

@@ -1,7 +1,10 @@
 ﻿using Compressors;
-using GZipCompressor.Archiever;
+using GZipCompressor.Contracts;
 using GZipCompressor.Extensions;
+using GZipCompressor.GZipArchiever;
 using GZipCompressor.InputValidations;
+using GZipCompressor.ProcessManagement;
+using GZipCompressor.Service;
 using InputValidations;
 using Outputs;
 using Services.Decompressor;
@@ -19,12 +22,10 @@ namespace GZipCompressor
         private static string FAILURE_CREATED = "File was not created";
 
         static void Main(string[] args)
-        {
-            GZipBlockArchiver compressor = null;
-
+        {            
             Console.CancelKeyPress += (sender, ceArgs) =>
             {
-                compressor.SetCancelStatus(true);                
+                StatusManager.ProcessIsCanceled = true;                
                 ConsoleLogger.WriteDiagnosticInfo(PROCESS_CANCELLED);                                
                 Environment.Exit(FAILURE_EXIT_CODE);                
             };
@@ -35,15 +36,21 @@ namespace GZipCompressor
                 var inputFile = new FileInfo(args[1]);
 
                 var threadManager = new ThreadManager();
+
+                GZipBlockArchiver compressor = null;
                 if (args[0] == Dictionary.COMPRESS_COMMAND)
                     compressor = new Compressor(args[1], args[2],  threadManager, inputFile.Length);
                 else
                     compressor = new Decompressor(args[1], args[2], threadManager , inputFile.Length);
-                
-                var processResult = compressor.Start();
+
+                var fileReader = new FileReader(args[1], compressor.CompressedDataManagers);
+                var archiever = new Archiever(compressor.CompressedDataManagers, compressor.DictionaryWritingManager);
+                var fileWriter = new FileWriter(args[2], compressor.DictionaryWritingManager);
+
+                var processResult = compressor.Start(fileReader, archiever, fileWriter);
 
                 Console.CursorTop += 1;
-                if (processResult && !compressor.GetCancelStatus())                               
+                if (processResult && !StatusManager.ProcessIsCanceled)                               
                     ConsoleLogger.WriteSuccessInfo($"{args[2]} : {SUCCESS_CREATED}");                
                 else                
                     ConsoleLogger.WriteError($"{args[2]}: {FAILURE_CREATED}");                

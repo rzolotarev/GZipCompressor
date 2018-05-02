@@ -5,10 +5,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace GZipCompressor.Archiever
+namespace GZipCompressor.Contracts
 {
     public interface IThreadManager
     {
-        void TryToWakeUp(SyncBlock syncBlock);       
+        void TryToWakeUp(SyncBlock syncBlock);
     }
 }

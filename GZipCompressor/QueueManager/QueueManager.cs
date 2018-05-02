@@ -1,10 +1,6 @@
-﻿using GZipCompressor.Archiever;
+﻿using GZipCompressor.Contracts;
 using GZipCompressor.Models;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace GZipCompressor.QueueManager
 {

@@ -1,4 +1,5 @@
-﻿using GZipCompressor.Models;
+﻿using GZipCompressor.Contracts;
+using GZipCompressor.Models;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -6,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace GZipCompressor.Archiever
+namespace GZipCompressor.GZipArchiever
 {
     public class ThreadManager : IThreadManager
     {
