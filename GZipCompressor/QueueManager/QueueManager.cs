@@ -54,5 +54,10 @@ namespace GZipCompressor.QueueManager
             _syncBlock.IsWorking = false;            
             _syncBlock.Event.WaitOne();
         }
+
+        public void WakeUp()
+        {
+            _syncBlock.Event.Set();
+        }
     }
 }

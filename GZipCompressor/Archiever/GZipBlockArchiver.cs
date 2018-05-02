@@ -11,7 +11,7 @@ namespace GZipCompressor.Archiever
     {
         public static bool ProcessIsCanceled { get; set; } = false;
 
-        protected readonly IThreadManager ThreadManager;
+        protected readonly IThreadManager _threadManager;
 
         private static string chunkSize => "ChunkSize";
         private static string threadTimeout => "ThreadTimeout";
@@ -36,7 +36,7 @@ namespace GZipCompressor.Archiever
         {
             SourceFilePath = sourceFilePath;
             TargetFilePath = targetFilePath;
-            ThreadManager = threadManager;
+            _threadManager = threadManager;
             BlockSizeToRead = SettingsManager.GetConfigParameter<int>(chunkSize);
             ThreadTimeout = SettingsManager.GetConfigParameter<int>(threadTimeout);                               
             DictionaryWritingManager = new DictionaryManager<int, byte[]>((int)(fileSize / BlockSizeToRead) + 1);         
@@ -66,7 +66,7 @@ namespace GZipCompressor.Archiever
             InitDefaultQueues(Syncs);
 
             for (int i = 0; i < queuesManager.Length; i++)
-                queuesManager[i] = new QueueManager<BytesBlock>(ThreadManager, Syncs[i]);
+                queuesManager[i] = new QueueManager<BytesBlock>(_threadManager, Syncs[i]);
         }
 
         public abstract bool Start();

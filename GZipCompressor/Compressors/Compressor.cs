@@ -97,7 +97,8 @@ namespace Compressors
                     ReadingIsCompleted = true;
                 }
 
-                ThreadManager.WakeUp(Syncs);               
+                foreach (var dataManager in CompressedDataManagers)
+                    dataManager.WakeUp();                            
             }
         }
 

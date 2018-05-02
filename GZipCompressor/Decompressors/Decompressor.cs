@@ -31,7 +31,6 @@ namespace Services.Decompressor
         {
             ConsoleLogger.WriteDiagnosticInfo($"Decompressing of {SourceFilePath} to {TargetFilePath} is started...");
 
-
             new Thread(ReadSourceFile).Start();
 
             for (int i = 0; i < CoresCount; i++)
@@ -98,7 +97,8 @@ namespace Services.Decompressor
                         ReadingIsCompleted = true;
                     }
 
-                    ThreadManager.WakeUp(Syncs);                 
+                    foreach (var dataManager in CompressedDataManagers)
+                        dataManager.WakeUp();
                 }
             }
         }
