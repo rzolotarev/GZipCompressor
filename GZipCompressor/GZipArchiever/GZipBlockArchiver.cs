@@ -19,7 +19,7 @@ namespace GZipCompressor.GZipArchiever
         private const string CHUNK_SIZE = "ChunkSize";        
         private readonly ThreadManager _threadManager;    
         
-        protected int CoresCount => Environment.ProcessorCount;               
+        private int coresCount => Environment.ProcessorCount;               
         private string _sourceFilePath { get; set; }
         private string _targetFilePath { get; set; }        
         public QueueManager<BytesBlock>[] CompressedDataManagers { get; private set; }
@@ -33,7 +33,7 @@ namespace GZipCompressor.GZipArchiever
             _threadManager = threadManager;
             var blockSizeToRead = SettingsManager.GetConfigParameter<int>(CHUNK_SIZE);
             DictionaryWritingManager = new DictionaryManager<int, byte[]>((int)(fileSize / blockSizeToRead) + 1);         
-            CompressedDataManagers = new QueueManager<BytesBlock>[CoresCount];
+            CompressedDataManagers = new QueueManager<BytesBlock>[coresCount];
             InitQueueManagers(CompressedDataManagers);
         }       
 
@@ -45,7 +45,7 @@ namespace GZipCompressor.GZipArchiever
 
         private void InitQueueManagers(QueueManager<BytesBlock>[] queuesManager)
         {
-            var syncs = new SyncBlock[CoresCount];
+            var syncs = new SyncBlock[coresCount];
             InitDefaultQueues(syncs);
 
             for (int i = 0; i < queuesManager.Length; i++)
@@ -56,11 +56,9 @@ namespace GZipCompressor.GZipArchiever
         {
             ConsoleLogger.WriteDiagnosticInfo($"{operationType.DisplayName()} of {_sourceFilePath} to {_targetFilePath} is started...");
 
-            new Thread(fileReader.Read).Start();
+            new Thread(fileReader.Read).Start();            
 
-            var compressThreads = new Thread[CoresCount];
-
-            for (int i = 0; i < CoresCount; i++)
+            for (int i = 0; i < coresCount; i++)
             {
                 var current = i;
                 new Thread(() => archiever.Start(current)).Start();
